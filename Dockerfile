@@ -1,20 +1,18 @@
-# 第一阶段：构建阶段
-FROM golang:1.21 AS builder
+# 使用 golang 镜像作为构建和运行环境
+FROM golang:1.23.4 AS builder
 
+# 设置工作目录
 WORKDIR /app
+
+# 拷贝 Go mod 文件并下载依赖
 COPY go.mod go.sum ./
 RUN go mod download
+
+# 拷贝源代码
 COPY . .
-RUN go build -o main .
 
-# 第二阶段：运行阶段
-FROM alpine:latest
+# 编译 Go 程序为 Linux 可执行文件
+RUN GOOS=linux GOARCH=amd64 go build -o main .
 
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
-COPY --from=builder /app/main .
-
-# ENV APP_ENV=production
-EXPOSE 8080
-
+# 启动时执行的命令
 CMD ["./main"]
