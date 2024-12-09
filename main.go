@@ -45,7 +45,7 @@ func upload(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, gin.H{"url": "https://tempfile.igateway.top/" + response["data"].(map[string]interface{})["id"].(string)})
 }
 
 func download(c *gin.Context) {
