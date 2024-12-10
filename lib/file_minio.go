@@ -11,7 +11,7 @@ import (
 )
 
 const bucketName = "tempfile"
-const endpoint = "127.0.0.1:9000"
+const endpoint = "43.153.112.166:9000"
 const accessKeyID = "qPjlzaM6Mxk8XiluX88z"
 const secretAccessKey = "ZSVaI5wOvJvZ6N3p2phRuhnM5EPVVwtuMwHeuvvI"
 const useSSL = false
