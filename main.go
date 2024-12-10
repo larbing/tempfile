@@ -85,6 +85,10 @@ func options(c *gin.Context) {
 	c.String(http.StatusOK, "")
 }
 
+func notFound(c *gin.Context) {
+	c.Redirect(http.StatusMovedPermanently, "https://tempfile.itoolkit.top")
+}
+
 func main() {
 
 	r := gin.Default()
@@ -98,6 +102,7 @@ func main() {
 	r.POST("/upload", upload)
 	r.GET("/download/:id", download)
 	r.OPTIONS("/upload", options)
+	r.NoRoute(notFound)
 
 	r.Run(":8080")
 }
