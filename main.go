@@ -12,7 +12,7 @@ import (
 
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "https://tempfile.itoolkit.top")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -39,13 +39,13 @@ func upload(c *gin.Context) {
 	}
 	defer fileStream.Close()
 
-	response, err := lib.UploadFile(fileModel, fileStream)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	id := lib.GenerateID(8)
 
-	c.JSON(http.StatusOK, gin.H{"id": response["data"].(map[string]interface{})["id"].(string)})
+	go func() {
+		lib.UploadFileToMinio(id, fileModel, fileStream)
+	}()
+
+	c.JSON(http.StatusOK, gin.H{"id": id})
 }
 
 func download(c *gin.Context) {
@@ -55,30 +55,31 @@ func download(c *gin.Context) {
 		return
 	}
 
-	resp, err := lib.DownloadFile(id)
+	resp, err := lib.DownloadFileFromMinio(id)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("received non-OK status code: %d", resp.StatusCode)})
+	fileName, err := io.ReadAll(resp.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read response body: %v", err)})
 		return
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Content)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read response body: %v", err)})
 		return
 	}
 
 	// 设置响应头
-	c.Header("Content-Type", resp.Header.Get("Content-Type"))
-	c.Header("Content-Disposition", resp.Header.Get("Content-Disposition"))
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
 	// 返回响应内容
-	c.Data(http.StatusOK, resp.Header.Get("Content-Type"), body)
+	c.Data(http.StatusOK, c.GetHeader("Content-Type"), body)
 }
 
 func options(c *gin.Context) {
