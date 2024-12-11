@@ -55,18 +55,14 @@ func download(c *gin.Context) {
 		return
 	}
 
-	resp, err := lib.DownloadFileFromMinio(id)
+	resp, err := lib.GetFileFromMinio(id)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	fileName, err := io.ReadAll(resp.Name)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read response body: %v", err)})
-		return
-	}
+	fileName := resp.Info.Name
 
 	body, err := io.ReadAll(resp.Content)
 	if err != nil {
@@ -79,7 +75,25 @@ func download(c *gin.Context) {
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
 	// 返回响应内容
-	c.Data(http.StatusOK, c.GetHeader("Content-Type"), body)
+	c.Data(http.StatusOK, "application/octet-stream", body)
+}
+
+func info(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
+		return
+	}
+
+	resp, err := lib.GetFileInfoFromMinio(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	fileInfo := resp.Info
+
+	c.JSON(http.StatusOK, gin.H{"error": nil, "data": fileInfo})
 }
 
 func options(c *gin.Context) {
@@ -100,9 +114,10 @@ func main() {
 	// Set the maximum upload size
 	r.MaxMultipartMemory = (8 << 20) * 6
 
-	r.POST("/upload", upload)
-	r.GET("/download/:id", download)
-	r.OPTIONS("/upload", options)
+	r.POST("/api/files", upload)
+	r.GET("/api/files/:id/download", download)
+	r.GET("/api/files/:id", info)
+	r.OPTIONS("/api/files", options)
 	r.NoRoute(notFound)
 
 	r.Run(":8080")

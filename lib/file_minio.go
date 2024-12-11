@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 	"strings"
@@ -30,19 +31,24 @@ func init() {
 	}
 }
 
-func UploadFileToMinio(id string, fileModel FileModel, fileStream io.Reader) error {
+func UploadFileToMinio(id string, fileInfo FileModel, fileStream io.Reader) error {
 
 	ctx := context.Background()
 
+	infoData, err := json.Marshal(fileInfo)
+	if err != nil {
+		return err
+	}
+
 	//保存文件名
-	reader := strings.NewReader(fileModel.Name)
-	_, err = minioClient.PutObject(ctx, bucketName, id+".name", reader, int64(len(fileModel.Name)), minio.PutObjectOptions{ContentType: "text/plain"})
+	reader := strings.NewReader(string(infoData))
+	_, err = minioClient.PutObject(ctx, bucketName, id+".info", reader, int64(len(infoData)), minio.PutObjectOptions{ContentType: "application/json"})
 	if err != nil {
 		return err
 	}
 
 	//保存文件内容
-	_, err = minioClient.PutObject(ctx, bucketName, id+".content", fileStream, fileModel.Size, minio.PutObjectOptions{})
+	_, err = minioClient.PutObject(ctx, bucketName, id+".content", fileStream, fileInfo.Size, minio.PutObjectOptions{})
 	if err != nil {
 		return err
 	}
@@ -51,25 +57,60 @@ func UploadFileToMinio(id string, fileModel FileModel, fileStream io.Reader) err
 }
 
 type MinioFileResponse struct {
-	Name    io.Reader
+	Info    FileModel
 	Content io.Reader
 }
 
-func DownloadFileFromMinio(id string) (*MinioFileResponse, error) {
+func GetFileFromMinio(id string) (*MinioFileResponse, error) {
 	ctx := context.Background()
 	content, err := minioClient.GetObject(ctx, bucketName, id+".content", minio.GetObjectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	name, err := minioClient.GetObject(ctx, bucketName, id+".name", minio.GetObjectOptions{})
+	infoObject, err := minioClient.GetObject(ctx, bucketName, id+".info", minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	infoData, err := io.ReadAll(infoObject)
+	if err != nil {
+		return nil, err
+	}
+
+	var newFileInfo FileModel
+	err = json.Unmarshal(infoData, &newFileInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	return &MinioFileResponse{
-		Name:    name,
+		Info:    newFileInfo,
 		Content: content,
 	}, nil
 
+}
+
+func GetFileInfoFromMinio(id string) (*MinioFileResponse, error) {
+	ctx := context.Background()
+	fileInfoObject, err := minioClient.GetObject(ctx, bucketName, id+".info", minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	fileInfoData, err := io.ReadAll(fileInfoObject)
+	if err != nil {
+		return nil, err
+	}
+
+	var fileInfo FileModel
+	err = json.Unmarshal(fileInfoData, &fileInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MinioFileResponse{
+		Info:    fileInfo,
+		Content: nil,
+	}, nil
 }
