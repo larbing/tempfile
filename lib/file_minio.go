@@ -13,8 +13,8 @@ import (
 
 const bucketName = "tempfile"
 const endpoint = "43.153.112.166:9000"
-const accessKeyID = "qPjlzaM6Mxk8XiluX88z"
-const secretAccessKey = "ZSVaI5wOvJvZ6N3p2phRuhnM5EPVVwtuMwHeuvvI"
+const accessKeyID = "fO1LiJbIykmUvSLa5ttV"
+const secretAccessKey = "PEg1ELGiQBzSxyXehH2ePvvp3UhlKFQwv5u8Y7yI"
 const useSSL = false
 
 var minioClient *minio.Client
