@@ -12,7 +12,7 @@ import (
 )
 
 const bucketName = "tempfile"
-const endpoint = "43.153.112.166:9000"
+const endpoint = "172.17.0.1:9000"
 const accessKeyID = "fO1LiJbIykmUvSLa5ttV"
 const secretAccessKey = "PEg1ELGiQBzSxyXehH2ePvvp3UhlKFQwv5u8Y7yI"
 const useSSL = false
@@ -58,7 +58,18 @@ func UploadFileToMinio(id string, fileInfo FileModel, fileStream io.Reader) erro
 
 type MinioFileResponse struct {
 	Info    FileModel
-	Content io.Reader
+	Content io.ReadCloser
+	Object  *minio.Object
+}
+
+func GetFileObjectFromMinio(id string) (*minio.Object, error) {
+	ctx := context.Background()
+	content, err := minioClient.GetObject(ctx, bucketName, id+".content", minio.GetObjectOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
 }
 
 func GetFileFromMinio(id string) (*MinioFileResponse, error) {
