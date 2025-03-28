@@ -95,9 +95,7 @@ func upload(c *gin.Context) {
 
 	id := lib.GenerateID(8)
 
-	go func() {
-		lib.UploadFileToMinio(id, fileModel, fileStream)
-	}()
+	lib.UploadFileToMinio(id, fileModel, fileStream)
 
 	c.JSON(http.StatusOK, gin.H{"id": id})
 }
