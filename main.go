@@ -117,9 +117,45 @@ func download(c *gin.Context) {
 	}
 
 	fileName := resp.Info.Name
+
+	body, err := io.ReadAll(resp.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to read response body: %v", err)})
+		return
+	}
+
+	// 设置响应头
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+
+	// 返回响应内容
+	c.Data(http.StatusOK, "application/octet-stream", body)
+}
+
+// 添加新的 HTML 输出函数
+func html(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID is required"})
+		return
+	}
+
+	resp, err := lib.GetFileFromMinio(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// fileName := resp.Info.Name
 	contentType := resp.Info.ContentType
 	if contentType == "" {
-		contentType = "application/octet-stream"
+		contentType = "text/html"
+	}
+
+	// 检查 ContentType 是否为 text/html
+	if contentType != "text/html" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "文件类型必须是 text/html"})
+		return
 	}
 
 	body, err := io.ReadAll(resp.Content)
@@ -130,10 +166,10 @@ func download(c *gin.Context) {
 
 	// 设置响应头
 	c.Header("Content-Type", contentType)
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+	// c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", fileName))
 
 	// 返回响应内容
-	c.Data(http.StatusOK, "application/octet-stream", body)
+	c.Data(http.StatusOK, contentType, body)
 }
 
 func info(c *gin.Context) {
@@ -316,6 +352,7 @@ func main() {
 	r.GET("/api/files/:id", info)
 	r.OPTIONS("/api/files", options)
 	r.GET("/api/files/:id/video", streamVideo)
+	r.GET("/api/files/:id/html", html) // 添加新的 HTML 路由
 	r.NoRoute(notFound)
 
 	// 创建自定义 http.Server
