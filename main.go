@@ -81,9 +81,11 @@ func upload(c *gin.Context) {
 		return
 	}
 
+	contentType := file.Header.Get("Content-Type")
 	fileModel := lib.FileModel{
-		Name: file.Filename,
-		Size: file.Size,
+		Name:        file.Filename,
+		Size:        file.Size,
+		ContentType: contentType,
 	}
 
 	fileStream, err := file.Open()
@@ -115,6 +117,10 @@ func download(c *gin.Context) {
 	}
 
 	fileName := resp.Info.Name
+	contentType := resp.Info.ContentType
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
 
 	body, err := io.ReadAll(resp.Content)
 	if err != nil {
@@ -123,7 +129,7 @@ func download(c *gin.Context) {
 	}
 
 	// 设置响应头
-	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Type", contentType)
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
 
 	// 返回响应内容
