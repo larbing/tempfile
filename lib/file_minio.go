@@ -36,8 +36,13 @@ func UploadFileToMinio(id string, fileInfo FileModel, fileStream io.Reader) erro
 	ctx := context.Background()
 
 	// 创建标签
-	fileTags := &tags.Tags{}
-	fileTags.Set("tag", fileInfo.Tag)
+	fileTags, err := tags.NewTags(map[string]string{
+		"tag": fileInfo.Tag,
+	}, true) // true indicates object tags
+
+	if err != nil {
+		return err
+	}
 
 	// 将 FileModel 序列化为 JSON
 	infoData, err := json.Marshal(fileInfo)
