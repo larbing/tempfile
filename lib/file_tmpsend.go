@@ -12,9 +12,10 @@ import (
 )
 
 type FileModel struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
+	Name        string `json:"name"`
+	Size        int64  `json:"size"`
 	ContentType string `json:"contentType"`
+	Tag         string `json:"tag"`
 }
 
 type Response map[string]interface{}

@@ -86,6 +86,7 @@ func upload(c *gin.Context) {
 		Name:        file.Filename,
 		Size:        file.Size,
 		ContentType: contentType,
+		Tag:         "autoRecycle",
 	}
 
 	fileStream, err := file.Open()
